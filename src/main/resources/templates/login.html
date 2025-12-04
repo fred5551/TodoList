@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head}"></head>
+<body class="bg-light">
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <i class="bi bi-check2-circle text-primary"
+                           style="font-size: 3rem;"></i>
+                        <h2 class="mt-2">Todo List Pro</h2>
+                        <p class="text-muted">Connexion à votre compte</p>
+                    </div>
+
+                    <div th:if="${param.error}" class="alert alert-danger">
+                        Identifiants invalides
+                    </div>
+                    <div th:if="${param.logout}" class="alert alert-success">
+                        Déconnexion réussie
+                    </div>
+                    <div th:if="${param.registered}" class="alert alert-
+success">
+                        Inscription réussie ! Vous pouvez maintenant vous
+                        connecter.
+                    </div>
+
+                    <form th:action="@{/login}" method="post">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Nom
+                                d'utilisateur</label>
+                            <input type="text" class="form-control"
+                                   id="username" name="username" required autofocus>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Mot de
+                                passe</label>
+                            <input type="password" class="form-control"
+                                   id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right"></i> Se
+                            connecter
+                        </button>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <a th:href="@{/register}" class="text-decoration-
+none">
+                            Créer un compte
+                        </a>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <p class="mb-1 small"><strong>Comptes de test :
+                        </strong></p>
+                        <p class="mb-0 small">Admin: admin / admin123</p>
+                        <p class="mb-0 small">User: user / user123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>
