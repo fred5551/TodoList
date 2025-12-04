@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Tâches - Todo List Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">
+            <i class="bi bi-check2-circle"></i> Todo List Pro
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" th:href="@{/tasks}">
+                        <i class="bi bi-list-task"></i> Mes Tâches
+                    </a>
+                </li>
+                <li class="nav-item" th:if="${#authorization.expression('hasRole(''ADMIN'')')}">
+                    <a class="nav-link" th:href="@{/admin}">
+                        <i class="bi bi-shield-lock"></i> Administration
+                    </a>
+                </li>
+                <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="bi bi-person-circle"></i> <span th:text="${username}">User</span>
+                        </span>
+                </li>
+                <li class="nav-item">
+                    <form th:action="@{/logout}" method="post" class="d-inline">
+                        <button type="submit" class="btn btn-link nav-link text-white">
+                            <i class="bi bi-box-arrow-right"></i> Déconnexion
+                        </button>
+                    </form>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-list-check"></i> Mes Tâches</h1>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createTaskModal">
+            <i class="bi bi-plus-circle"></i> Nouvelle tâche
+        </button>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-clipboard"></i> À faire</h5>
+                    <h2 th:text="${#lists.size(tasks.?[status.name() == 'TODO'])}">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-hourglass-split"></i> En cours</h5>
+                    <h2 th:text="${#lists.size(tasks.?[status.name() == 'IN_PROGRESS'])}">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-circle"></i> Terminées</h5>
+                    <h2 th:text="${#lists.size(tasks.?[status.name() == 'DONE'])}">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des tâches -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th>Titre</th>
+                            <th>Description</th>
+                            <th>Statut</th>
+                            <th>Échéance</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="task : ${tasks}">
+                            <td>
+                                <strong th:text="${task.title}">Titre</strong>
+                            </td>
+                            <td th:text="${task.description}">Description</td>
+                            <td>
+                                        <span th:class="${'badge ' + (task.status.name() == 'TODO' ? 'bg-info' : task.status.name() == 'IN_PROGRESS' ? 'bg-warning' : 'bg-success')}"
+                                              th:text="${task.status.name() == 'TODO' ? 'À faire' : task.status.name() == 'IN_PROGRESS' ? 'En cours' : 'Terminée'}">
+                                            Statut
+                                        </span>
+                            </td>
+                            <td>
+                                        <span th:if="${task.dueDate != null}"
+                                              th:text="${#temporals.format(task.dueDate, 'dd/MM/yyyy HH:mm')}">
+                                            Date
+                                        </span>
+                                <span th:if="${task.dueDate == null}" class="text-muted">-</span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        th:attr="data-task-id=${task.id},data-task-title=${task.title},data-task-description=${task.description},data-task-status=${task.status},data-task-duedate=${task.dueDate}"
+                                        onclick="editTaskFromButton(this)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form th:action="@{/tasks/delete/{id}(id=${task.id})}" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(tasks)}">
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox" style="font-size: 3rem;"></i>
+                                <p class="mt-2">Aucune tâche pour le moment</p>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Créer une tâche -->
+<div class="modal fade" id="createTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle tâche</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form th:action="@{/tasks/create}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Titre *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="dueDate" class="form-label">Date d'échéance</label>
+                        <input type="datetime-local" class="form-control" id="dueDate" name="dueDate">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier une tâche -->
+<div class="modal fade" id="editTaskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier la tâche</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTaskForm" method="post">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editTitle" class="form-label">Titre *</label>
+                        <input type="text" class="form-control" id="editTitle" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editStatus" class="form-label">Statut</label>
+                        <select class="form-select" id="editStatus" name="status">
+                            <option value="TODO">À faire</option>
+                            <option value="IN_PROGRESS">En cours</option>
+                            <option value="DONE">Terminée</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editDueDate" class="form-label">Date d'échéance</label>
+                        <input type="datetime-local" class="form-control" id="editDueDate" name="dueDate">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const csrfToken = /*[[${_csrf.token}]]*/ '';
+    const csrfHeader = /*[[${_csrf.headerName}]]*/ '';
+    /*]]>*/
+
+    function editTaskFromButton(button) {
+        const id = button.getAttribute('data-task-id');
+        const title = button.getAttribute('data-task-title');
+        const description = button.getAttribute('data-task-description');
+        const status = button.getAttribute('data-task-status');
+        const dueDate = button.getAttribute('data-task-duedate');
+
+        document.getElementById('editTaskForm').action = '/tasks/update/' + id;
+        document.getElementById('editTitle').value = title;
+        document.getElementById('editDescription').value = description || '';
+        document.getElementById('editStatus').value = status;
+
+        if (dueDate && dueDate !== 'null') {
+            const date = new Date(dueDate);
+            const formatted = date.toISOString().slice(0, 16);
+            document.getElementById('editDueDate').value = formatted;
+        } else {
+            document.getElementById('editDueDate').value = '';
+        }
+
+        new bootstrap.Modal(document.getElementById('editTaskModal')).show();
+    }
+</script>
+</body>
+</html>

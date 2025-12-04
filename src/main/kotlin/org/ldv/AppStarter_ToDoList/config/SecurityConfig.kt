@@ -9,6 +9,9 @@ import org.springframework.security.web.authentication.AuthenticationSuccessHand
 // Ajout du gestionnaire de déconnexion de Spring Security :
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler
 
+// AJOUT TP2 - Import du logger SLF4J
+import org.slf4j.LoggerFactory
+
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authentication.AuthenticationManager
@@ -28,6 +31,9 @@ class SecurityConfig(
     // Injection du service AuditLogService par le constructeur :
     private val auditLogService: AuditLogService
 ) {
+
+    // AJOUT TP2 - Logger dédié à l'audit (redirigé vers audit.log via logback-spring.xml)
+    private val auditLogger = LoggerFactory.getLogger("AUDIT")
 
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
@@ -87,12 +93,16 @@ class SecurityConfig(
     private fun customAuthenticationSuccessHandler(): AuthenticationSuccessHandler =
         AuthenticationSuccessHandler { request, response, authentication ->
             val username = authentication.name
+            val ip = request.remoteAddr
             auditLogService.log(
                 username = username,
                 action = "LOGIN",
                 details = "Connexion réussie",
                 request = request
             )
+
+            // AJOUT TP2 - écriture dans audit.log
+            auditLogger.info("LOGIN user={} ip={}", username, ip)
             response.sendRedirect("/tasks")
         }
 
@@ -100,12 +110,19 @@ class SecurityConfig(
     private fun customLogoutSuccessHandler(): LogoutSuccessHandler =
         LogoutSuccessHandler { request, response, authentication ->
             val username = authentication?.name ?: "anonymous"
+            val ip = request.remoteAddr
+
+            // (audit en base - TP1)
             auditLogService.log(
                 username = username,
                 action = "LOGOUT",
                 details = "Déconnexion",
                 request = request
             )
+
+            // AJOUT TP2 - écriture dans audit.log
+            auditLogger.info("LOGOUT user={} ip={}", username, ip)
+
             response.sendRedirect("/login?logout")
         }
 
